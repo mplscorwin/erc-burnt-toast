@@ -1,0 +1,23 @@
+#+TITLE: erc-burnt-toast --- ERC notifications for Windows 10
+
+This project uses the Windows PowerShell module [[https://github.com/Windos/BurntToast][Burnt-Toast]] to create notifications from ERC in the Windows 10 Notifications Center.
+
+If you have enabled contact pinning and created a contact matching "ERC@ema.cs" (or whatever you've customized ~erc-burnt-toast-person~ to be) and pinned it to the task bar you can also get an animated notification (customized by placing a file path or URL in ~erc-burnt-toast-image~) from the start-menu unless an application is currently full-screen.
+
+* Setup and Troubleshooting
+
+Install and configure the Burnt-Toast module for Windows PowerShell before using this package.
+
+Some features may also potentially disabled from the Windows 10 Notification Center Preference Control Panel; be sure to double check those settings first if are having trouble.
+
+The alpha version leaves in place version debugging including a dump of the PowerShell command used.  The commands echoed to *Messages* are suitable for use in cmd.exe however it should be simple to extract the embedded PowerShell command for debugging purposes.  Please make sure you can successfully issue Burnt-Toast notifications from powershell before opening issues.
+
+* Thanks for all the help!
+
+Thanks to bandali (the ERC maintainer for [[https://www.gnu.org/software/Emacs][GNU Emacs]]) and a host of others on EFNet #ERC and #Emacs for support in creating and troubleshooting.  Thanks also to Xah Lee for [[http://ergoemacs.org/emacs/emacs_zap_gremlins.html][his excellent website]], and to everybody who works on the [[https://www.emacswiki.org/][EmacsWiki]].
+
+I welcome patches and github issues including those which offer suggestions, questions and commentary.
+
+Your beautiful. Thanks.
+
+#  LocalWords:  PowerShell LocalWords
