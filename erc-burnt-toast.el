@@ -159,7 +159,7 @@ Notification Center."
     "Buffer to receive powershell output.")
 
 (defvar erc-burnt-toast-format
-  "powershell.exe -Command \"\\$Logo = '%s'; \\$Image = '%s'; \\$Person = '%s'; \\$Text = '%s %s'; New-BurntToastShoulderTap -AppLogo \\$Logo -Image \\$Image -Person \\$Person -Text \\$Text\""
+  "powershell.exe -Command \"\\$Logo = '%s'; \\$Image = '%s'; \\$Person = '%s'; \\$Text = '%s'; \\$Text2 = '%s'; New-BurntToastShoulderTap -AppLogo \\$Logo -Image \\$Image -Person \\$Person -Text \\$Text,\\$Text2\""
   "This is the format string for the powershell command.")
 
 ;; humurglesmurf
