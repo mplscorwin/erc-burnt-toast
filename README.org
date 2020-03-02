@@ -6,15 +6,68 @@ If you have enabled contact pinning and created a contact matching "ERC@ema.cs" 
 
 * Setup and Troubleshooting
 
-Install and configure the Burnt-Toast module for Windows PowerShell before using this package.
+#+BEGIN_QUOTE
+This is early alpha software.  I'm currently using it but haven't
+tested much outside my own use-case (ERC+ercn).  Thanks in advance for
+any issues you trouble to report.
+#+END_QUOTE
 
-Some features may also potentially disabled from the Windows 10 Notification Center Preference Control Panel; be sure to double check those settings first if are having trouble.
+Install and configure the [[https://github.com/Windos/BurntToast][Burnt-Toast]] module for Windows PowerShell
+before using this package.
 
-The alpha version leaves in place version debugging including a dump of the PowerShell command used.  The commands echoed to *Messages* are suitable for use in cmd.exe however it should be simple to extract the embedded PowerShell command for debugging purposes.  Please make sure you can successfully issue Burnt-Toast notifications from powershell before opening issues.
+You should then be able to place erc-burnt-toast somewhere on your
+~load-path~ and use as such:
+
+#+NAME: example_erc_simple
+#+BEGIN_EXAMPLE emacs-lisp
+  (eval-after-load 'erc-match
+    (progn (require 'erc-burnt-toast)
+  	   (erc-burnt-toast-mode 1)))
+#+END_EXAMPLE
+
+If you use ercn try something like this, instead:
+
+#+NAME: example_ercn
+#+BEGIN_EXAMPLE emacs-lisp
+  (eval-after-load 'ercn
+    (progn
+      (require 'erc-burnt-toast)
+      (add-hook 'ercn-notify-hook
+	        (lambda (nickname message)
+	  	(erc-burnt-toast-command "ERC@ema.cs" nickname message)))))
+#+END_EXAMPLE
+
+It is also possible to invoke erc-burnt-toast-command interactively or
+from Emacs Lisp code unrelated to ERC/IRC.
+
+#+BEGIN_EXAMPLE emacs-lisp
+  (erc-burnt-toast-command "person@is.an.email.address"
+                           "title string"
+			   "message string")
+#+END_EXAMPLE
+
+If the value given for ~person~ matches the Emacs address of a contact
+pinned to the Windows task-bar display ~erc-burnt-toast-image~ floating
+over the desktop.  Otherwise, and in any case, toast is sent to the
+Windows 10 Notification center with ~title~ shown in bold above ~message~.
+
+You can control the value used for ~person~ for ~erc~ generated
+notifications by customizing ~erc-burnt-toast-person~.
+
+Some features may also potentially disabled from the Windows 10
+Notification Center Preference Control Panel; be sure to double check
+those settings first if are having trouble.
+
+The alpha version leaves in place version debugging including a dump
+of the PowerShell command used.  The commands echoed to *Messages* are
+suitable for use in cmd.exe however it should be simple to extract the
+embedded PowerShell command for debugging purposes.  Please make sure
+you can successfully issue Burnt-Toast notifications from PowerShell
+before opening issues.
 
 * Thanks for all the help!
 
-Thanks to bandali (the ERC maintainer for [[https://www.gnu.org/software/Emacs][GNU Emacs]]) and a host of others on EFNet #ERC and #Emacs for support in creating and troubleshooting.  Thanks also to Xah Lee for [[http://ergoemacs.org/emacs/emacs_zap_gremlins.html][his excellent website]], and to everybody who works on the [[https://www.emacswiki.org/][EmacsWiki]].
+Thanks to bandali (the ERC maintainer for [[https://www.gnu.org/software/Emacs][GNU Emacs]]) and a host of others on EFNet #ERC and #Emacs for support in creating and troubleshooting.  Thanks also to Xah Lee for [[http://ergoemacs.org/emacs/emacs_zap_gremlins.html][his excellent website]], and to everybody who works on the [[https://www.emacswiki.org/][EmacsWiki]].  I learned a great deal from [[https://github.com/alphapapa/emacs-package-dev-handbook#template][emacs-package-dev-handbook]] as well as from the documentation and sources of Joshua King's [[https://github.com/Windos/BurntToast][Burnt-Toast]] module for Windows PowerShell, on which this program relies.
 
 I welcome patches and github issues including those which offer suggestions, questions and commentary.
 

@@ -4,7 +4,7 @@
 
 ;; Author: Corwin Brust <corwin@bru.st>
 ;; URL: https://bru.st
-;; Version: 0.2-pre
+;; Version: 0.3-pre
 ;; Package-Requires: ((emacs "26.0"))
 ;; Keywords: irc erc burnt-toast
 
@@ -13,31 +13,83 @@
 ;;; Commentary:
 ;; Provide Windows Notification Center to erc with burnt-toast and erc-match
 ;;
+;; NOTICE: This is alpha software.  It working for me but not robustly tested.
+;;         outside my actual usecase which is ERC + ercn.  Patches welcome.
+;;
+;; Basic setup:
+;;   (eval-after-load 'erc-match
+;;     (progn (require 'erc-burnt-toast)
+;;   	   (erc-burnt-toast-mode 1)))
+;;
+;; Using `ercn':
+;;   (eval-after-load 'ercn
+;;     (progn
+;;       (require 'erc-burnt-toast)
+;;       (add-hook 'ercn-notify-hook
+;; 	        (lambda (nickname message)
+;; 	  	(erc-burnt-toast-command "ERC@ema.cs" nickname message)))))
+;;
 ;; 0.2 - clean-input: remove text properties using `org-no-properties'
-
+;;
 ;;;; Installation
-;;;;; MELPA
-;; If you installed from MELPA, you're done.
+;;
 ;;;;; Manual
-;; Install these required packages:
+;;
+;; If you wish, install this optional package:
 ;; + ercn
 ;; Then put this file in your load-path, and put this in your init
 ;; file:
 ;; (require 'erc-burnt-toast)
-;;;; Usage
-;; Run one of these commands:
-;; `erc-burnt-toast-command': Frobnicate the flange.
+;;
+;;;;; MELPA
+;; TODO If you installed from MELPA, you're done.  Feel free to open
+;; an issue issue if you are using this and would like to see it on
+;; MELPA.  I will create a release branch and submit MELPA PR when:
+;;    (< 1 users)
+;;    (> 1 issues)
+;; Welcome to erc-burnt-toast!
+;;
+;; This program provides support for the Window 10 Notification center.
+;;
+;; You can download GNU Emacs for Windows 10 from GNU's website:
+;;   https://www.gnu.org/software/emacs/
+;; Or try-prelease binaries from here:
+;;   https://alpha.gnu.org/gnu/emacs/pretest/windows/
+;;
+;; This program relies on the Burnt-Toast module for Windows
+;; powershell which must be installed and working prior to use.
+;;   https://github.com/Windos/BurntToast
+;;
+;; In addition to ERC support, this provides an interactive command to
+;; create sholder-tap notifications and Notification Center toast in
+;; Windows 10.
+;;
+;;   `erc-burnt-toast-command'
+;;
+;;  person: an email address.  If this does not matche a contact
+;;          pinned to the task-bar you will only get toast
+;;          without the "sholder tap" animation.
+;;  title:  first line of the toast, shown in bold
+;;  description: rest of the toast text
+;;
 ;;;; Tips
 ;; + You can customize settings in the `erc-burnt-toast' group.
-;;;; Credits
-;; This package would not have been possible without the following
-;; packages: emacs-package-dev-handbook[1], which showed the form
-;; and Alex Murray's erc-desktop-notifications from which I lifted
-;; the vast majority of the implementation.
+;; + Customize `erc-burnt-toast-image' to controls the animation
 ;;
-;;  [1] https://github.com/alphapapa/emacs-package-dev-handbook#template
-;;  [2] https://github.com/emacs-mirror/emacs/blob/master/lisp/erc/erc-desktop-notifications.el
-;;  
+;;;; Credits
+;; In addition to Joshua King's Burnt-Toast module for PowerShell[1],
+;; this program would not have been possible without the following
+;; packages: emacs-package-dev-handbook[2], which showed the form
+;; and Alex Murray's erc-desktop-notifications[3] from which I lifted
+;; the vast majority of the implementation.  Thanks also to "wasamma"
+;; from Freenode#ERC for the inspiration and, as always to Xah Lee for
+;; his helpful website[4]
+;;
+;;  [1] https://github.com/Windos/BurntToast
+;;  [2] https://github.com/alphapapa/emacs-package-dev-handbook#template
+;;  [3] https://github.com/emacs-mirror/emacs/blob/master/lisp/erc/erc-desktop-notifications.el
+;;  [4] http://xahlee.info/comp/unicode_index.html
+;;
 ;;; License:
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -54,9 +106,11 @@
 ;;; Code:
 
 ;;;; Requirements
-(require 'erc)
-(require 'erc-match)
-(require 'org-macs)
+(eval-when-compile
+  (require 'erc)
+  (require 'erc-match)
+  (require 'org-macs))
+
 ;;;; Customization
 
 (defgroup erc-burnt-toast nil
@@ -98,7 +152,7 @@
 	  (const "Call10")))
 
 (define-widget 'erc-burnt-toast-image-options 'lazy
-  "Sound options are based on those available from Notification Center."
+  "TODO Sound options are based on those available from Notification Center."
   :tag "Image"
   :type '(choice (string :tag "URL" ) ;; TODO: :validate
 		 (file   :tag "File"
@@ -159,19 +213,12 @@ Notification Center."
     "Buffer to receive powershell output.")
 
 (defvar erc-burnt-toast-format
-  "powershell.exe -Command \"\\$Logo = '%s'; \\$Image = '%s'; \\$Person = '%s'; \\$Text = '%s'; \\$Text2 = '%s'; New-BurntToastShoulderTap -AppLogo \\$Logo -Image \\$Image -Person \\$Person -Text \\$Text,\\$Text2\""
+  "powershell.exe -Command \"$Logo = '%s'; $Image = '%s'; $Person = '%s'; $Text = '%s','%s'; New-BurntToastShoulderTap -AppLogo $Logo -Image $Image -Person $Person -Text $Text\""
   "This is the format string for the powershell command.")
-
-;; humurglesmurf
-;;(setq erc-burnt-toast-format   "powershell.exe New-BurntToastShoulderTap -AppLogo '%s' -Image '%s' -Person '%s' -Text \"%s\", \"%s\"")
-;(setq erc-burnt-toast-format "powershell.exe -Command \"Import-Module C:\\Program Files\\WindowsPowerShell\\Modules\\BurntToast\\0.7.0\\BurntToast; New-BurntToastShoulderTap -AppLogo '%s' -Image '%s' -Person '%s' -Text '%s','%s'\"")
-
-;; this one worked.
-;;(setq erc-burnt-toast-format "powershell.exe -Command \"\\$Logo = '%s'; \\$Image = '%s'; \\$Person = '%s'; \\$Text = '%s %s'; New-BurntToastShoulderTap -AppLogo \\$Logo -Image \\$Image -Person \\$Person -Text \\$Text\"")
 
 (defvar erc-burnt-toast-query-on-unjoined-chan-privmsg
   nil
-  "Whether notifications are triggered by query from unjoined channels.")
+  "TODO Whether notifications are triggered by query from unjoined channels.")
 
 ;;;;; Keymaps
 
@@ -221,7 +268,6 @@ Notification Center."
 ;;(setq erc-burnt-toast-truncation-indicator "...")
 ;;(erc-burnt-toast--clean-msg "[12:12> corwin:\n\n yore\tmess  age \n\n <2:12]"  "corwin")
 
-;;;;; Commands
 (defun erc-burnt-toast-format-command (logo image person title description &optional no-clean)
   "Prepare powershell command line invoking Burnt-Toast.
 
@@ -238,68 +284,8 @@ LOGO IMAGE, PERSON, TITLE, and DESCRIPTION and NO-CLEAN."
 ;;(message "<[CMD:[%s]]>" (erc-burnt-toast-format-command "L" "I" "<p>" "t\nt" "d'd" t))
 ;;(message "<[CMD:[%s]]>" (erc-burnt-toast-format-command "L" "I" "<p>" "t\nt" "d'd"))
 
-(defun xah-asciify-text (&optional @begin @end)
-  "Remove accents in some letters.
-
-Change European language characters into equivalent ASCII ones,
-e.g. “café” ⇒ “cafe”.  When called interactively, work on current
-line or text selection, optionally between BEGIN and END,
-otherwise convert the whole string.
-
-URL `http://ergoemacs.org/emacs/emacs_zap_gremlins.html'
-Version 2018-11-12"
-  (interactive)
-  (let (($charMap
-         [
-          ["ß" "ss"]
-          ["á\\|à\\|â\\|ä\\|ā\\|ǎ\\|ã\\|å\\|ą\\|ă\\|ạ\\|ả\\|ả\\|ấ\\|ầ\\|ẩ\\|ẫ\\|ậ\\|ắ\\|ằ\\|ẳ\\|ặ" "a"]
-          ["æ" "ae"]
-          ["ç\\|č\\|ć" "c"]
-          ["é\\|è\\|ê\\|ë\\|ē\\|ě\\|ę\\|ẹ\\|ẻ\\|ẽ\\|ế\\|ề\\|ể\\|ễ\\|ệ" "e"]
-          ["í\\|ì\\|î\\|ï\\|ī\\|ǐ\\|ỉ\\|ị" "i"]
-          ["ñ\\|ň\\|ń" "n"]
-          ["ó\\|ò\\|ô\\|ö\\|õ\\|ǒ\\|ø\\|ō\\|ồ\\|ơ\\|ọ\\|ỏ\\|ố\\|ổ\\|ỗ\\|ộ\\|ớ\\|ờ\\|ở\\|ợ" "o"]
-          ["ú\\|ù\\|û\\|ü\\|ū\\|ũ\\|ư\\|ụ\\|ủ\\|ứ\\|ừ\\|ử\\|ữ\\|ự"     "u"]
-          ["ý\\|ÿ\\|ỳ\\|ỷ\\|ỹ"     "y"]
-          ["þ" "th"]
-          ["ď\\|ð\\|đ" "d"]
-          ["ĩ" "i"]
-          ["ľ\\|ĺ\\|ł" "l"]
-          ["ř\\|ŕ" "r"]
-          ["š\\|ś" "s"]
-          ["ť" "t"]
-          ["ž\\|ź\\|ż" "z"]
-          [" " " "]       ; thin space etc
-          ["–" "-"]       ; dash
-          ["—\\|一" "--"] ; em dash etc
-          ])
-        $begin $end
-        )
-    (if (null @begin)
-        (if (use-region-p)
-            (setq $begin (region-beginning) $end (region-end))
-          (setq $begin (line-beginning-position) $end (line-end-position)))
-      (setq $begin @begin $end @end))
-    (let ((case-fold-search t))
-      (save-restriction
-        (narrow-to-region $begin $end)
-        (mapc
-         (lambda ($pair)
-           (goto-char (point-min))
-           (while (search-forward-regexp (elt $pair 0) (point-max) t)
-             (replace-match (elt $pair 1))))
-         $charMap)))))
-
-(defun xah-asciify-string (@string)
-  "Returns a new @STRING.
-
-European language chars are changed ot ASCII ones e.g. “café” ⇒
-“cafe”.  See `xah-asciify-text' Version 2015-06-08"
-  (with-temp-buffer
-      (insert @string)
-      (xah-asciify-text (point-min) (point-max))
-      (buffer-string)))
-
+;;;;; Commands
+;;;###autoload
 (defun erc-burnt-toast-command (person title description)
   "Pop toast in the Windows Notification Center given PERSON, TITLE, AND DESCRIPTION."
   (interactive "sFrom:\nsSubject:\nsBody:")
@@ -307,38 +293,25 @@ European language chars are changed ot ASCII ones e.g. “café” ⇒
 						       erc-burnt-toast-image
 						       person
 						       title
-						       description))
-	 (cleaned (xah-asciify-string command-text)))
-    (message "(%s) %s => %s " (equal command-text cleaned) command-text cleaned)
-    (message "Running command> %s" command-text)
+						       description)))
+    ;; (message "(%s) %s => %s " (equal command-text cleaned) command-text cleaned)
+    ;; (message "Running command> %s" command-text)
     (start-process-shell-command "make-toast" erc-burnt-toast-buffer
 				 command-text)))
 ;; (erc-burnt-toast-command "ERC@ema.cs" "teste" "still a test")
 
-(defun erc-burnt-toast-2-PRIVMSG (_proc parsed)
-  "Conditionally send a notification given _PROC and PARSED."
-  (let ((nick (car (erc-parse-user (erc-response.sender parsed))))
-        (target (car (erc-response.command-args parsed)))
-        (msg (erc-response.contents parsed)))
-    (when (and (erc-current-nick-p target)
-               (not (and (boundp 'erc-track-exclude)
-                         (member nick erc-track-exclude)))
-               (not (erc-is-message-ctcp-and-not-action-p msg)))
-      (erc-burnt-toast-command erc-burnt-toast-person nick msg)))
-  ;; Return nil to continue processing by ERC
-  nil)
-
-(defun erc-burnt-toast-PRIVMSG (proc parsed)
-  "Give PROC and PARSED, issue a Windows Notification Center alert.
+(defun erc-burnt-toast-PRIVMSG (_proc parsed)
+  "Given PROC and PARSED, issue a Windows Notification Center alert.
 PROC and PARSED represent a ERC process and a parsed private message."
-  (let* ((nick (car (erc-parse-user (erc-response.sender parsed))))
+  (let ((nick (car (erc-parse-user (erc-response.sender parsed))))
 	 (target (car (erc-response.command-args parsed)))
 	 (msg (erc-response.contents parsed))
-	 (query  (if (not erc-burnt-toast-query-on-unjoined-chan-privmsg)
-		     nick
-		   (if (erc-current-nick-p target)
-		       nick
-		     target))))
+	 ;; (query  (if (not erc-burnt-toast-query-on-unjoined-chan-privmsg)
+	 ;; 	     nick
+	 ;; 	   (if (erc-current-nick-p target)
+	 ;; 	       nick
+	 ;; 	     target)))
+	 )
     (when (and (erc-current-nick-p target)
                (not (erc-is-message-ctcp-and-not-action-p msg)))
       (erc-burnt-toast-command erc-burnt-toast-person nick msg)))
@@ -370,87 +343,16 @@ PROC and PARSED represent a ERC process and a parsed private message."
 ;;   (erc-burnt-toast-command "ERC@emacs" nick msg))
 ;; (add-hook 'erc-text-matched-hook 'my/erc-global-notify)
 
-;;;###autoload(autoload 'erc-burnt-toast "erc-desktop-notifications" "" t)
-(define-erc-module notifications nil
-  "Send NOTIFICATIONS on private message reception and mentions."
-  ;; Enable
-  ((add-hook 'erc-server-PRIVMSG-functions 'erc-burnt-toast-PRIVMSG)
-   (add-hook 'erc-text-matched-hook 'erc-burnt-toast-notify-on-match))
-  ;; Disable
-  ((remove-hook 'erc-server-PRIVMSG-functions 'erc-burnt-toast-PRIVMSG)
-   (remove-hook 'erc-text-matched-hook 'erc-burnt-toast-notify-on-match)))
-;;;;; Support
-
-(defun erc-burnt-toast--something (args)
-  "This function helps frobnicate ARGS flange."
-  (message "%s" args))
-
-;;; Cruft
-
-;;((nick (nth 0 (erc-parse-user nickuserhost)))
-;; (nick (if (string-match-p "^Server:" orig-nick)
-;; 	     ;;(or (replace-regexp-in-string "^\\s*<\\(\\S+\\)>" "\\1" msg)
-;; 	     (if (string-match
-;; 		  "\\([^\s><]+\\)>\\(\s+\\([^\s:\r\n]*\\)[\s\r\n:]*\\)" msg)
-;; 		 (match-string 1 msg)
-;; 	       orig-nick)
-;; 	   orig-nick))
-;;(short-msg (if (not (string= orig-nick nick))
-;;	  (or (substring msg (match-end 2))
-;;		      msg)
-;;		msg)))
-
-
-;; (let ((str "  [20:56 ] <corwin> corwin_: hi!")
-;;       (data (match-data)))
-;;   (unwind-protect ; Ok to change the original match data.
-;;       (if (not (string-match erc-burnt-toast--timestamp-restr
-;; 		;; (concat "^\\([\n\r\t\s]*"
-;; 		;; 		     "\\[?\\(?:[\n\r\t\s]*"
-;; 		;; 		     "[0-9]?[0-0]:[0-9][0-9]"
-;; 		;; 		     "[\n\r\t\s]*\\)]?"
-;; 		;; 		     "[\n\r\t\s]*\\)")
-;; 			     str))
-;; 	  (message "no match")
-;; 	(message "match[1]%s" (match-string 1 str))
-;; 	(message "match[1]%s" (match-string 1 str)))
-;;     (set-match-data data)))
-
-
-    ;; (message "processing match on current nick!")
-    ;; (let* ((orig-nick (nth 0 (erc-parse-user nickuserhost)))
-    ;; 	   (nick (if (string-match-p "^Server:" orig-nick)
-    ;; 		     ;;(or (replace-regexp-in-string "^\\s*<\\(\\S+\\)>" "\\1" msg)
-    ;; 		     (if (string-match
-    ;; 			  "\\([^\s><]+\\)>\\(\s+\\([^\s:\r\n]*\\)[\s\r\n:]*\\)" msg)
-    ;; 			 (match-string 1 msg)
-    ;; 		       orig-nick)
-    ;; 		   orig-nick))
-    ;; 	   (short-msg (if (not (string= orig-nick nick))
-    ;; 			  (or (substring msg (match-end 2))
-    ;; 			      msg)
-    ;; 			msg)))
-    ;;   (message "nick:%s, msg:%s" nick short-msg)
-    ;;   (unless (when (boundp 'erc-track-exclude)
-    ;;             (member nick erc-track-exclude))
-    ;;     (erc-burnt-toast-command nickuserhost nick short-msg)))))
-
-
-;;(erc-burnt-toast-notify-on-match 'current-nick "foo!bar@baz" "test msg")
-;(erc-burnt-toast-notify-on-match 'current-nick "Server:" "20:56 <corwin> corwin_: hi!")
-
-
-;; (let ((str "20:56 <corwin> corwin_: hi!")
-;;       (data (match-data)))
-;;   (unwind-protect ; Ok to change the original match data.
-;;       (if (not (string-match "\\([^\s><]+\\)>\s+\\([^\s:\r\n]*[\s\r\n:]*\\)" str))
-;; 	  (message "no match")
-;; 	(message "match[1]%s" (match-string 1 str))
-;; 	(message "match[2]%s" (match-string 2 str)))
-;;     (set-match-data data)))
-
-;; (replace-regexp-in-string "^\\([\r\n\t\s]*[\\[<]?[0-9][0-9]:[0-9][0-9][]>]?[\r\n\t\s]*\\)\\|\\([\r\n\t\s]*[\\[<]?[0-9][0-9]:[0-9][0-9][]>]?[\r\n\t\s]*$\\)" ""  "[12:12>  nick:    \n\n    a long message         \n\n      <12:12]")
-
+;;;###autoload(autoload 'erc-burnt-toast "erc-burnt-toast" "" t)
+(eval-after-load 'erc
+  `(define-erc-module burnt-toast nil
+    "Send BURNT-TOAST notifications on private message and mentions."
+    ;; Enable
+    ((add-hook 'erc-server-PRIVMSG-functions #'erc-burnt-toast-PRIVMSG)
+     (add-hook 'erc-text-matched-hook #'erc-burnt-toast-notify-on-match))
+    ;; Disable
+    ((remove-hook 'erc-server-PRIVMSG-functions #'erc-burnt-toast-PRIVMSG)
+     (remove-hook 'erc-text-matched-hook #'erc-burnt-toast-notify-on-match))))
 
 ;;;; Footer
 
